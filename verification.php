@@ -3,6 +3,8 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
+session_start();
+
 require 'vendor/autoload.php';
 
 // Database connection
@@ -24,23 +26,23 @@ function sendemail_verify($email, $verify_code)
 {
     $mail = new PHPMailer(true);
     try {
-        //Server settings
-        $mail->SMTPDebug = SMTP::DEBUG_OFF;                      
-        $mail->isSMTP();                                          
-        $mail->Host       = 'smtp.gmail.com';                      
-        $mail->SMTPAuth   = true;                                   
-        $mail->Username   = 'mit703843@gmail.com';                 
-        $mail->Password   = 'cznsikanzkvwpldk';                  
-        $mail->SMTPSecure = 'tls';            
-        $mail->Port       = 587;                                    
+        // Server settings
+        $mail->SMTPDebug = SMTP::DEBUG_OFF;
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'mit703843@gmail.com';
+        $mail->Password   = 'cznsikanzkvwpldk';
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
 
-        //Recipients
-        $mail->setFrom('from@example.com', 'Mailer');
-        $mail->addAddress($email, 'Joe User');     
+        // Recipients
+        $mail->setFrom('from@example.com', 'OTP Verification');
+        $mail->addAddress($email);
         $mail->addReplyTo('info@example.com', 'Information');
 
-        //Content
-        $mail->isHTML(true);                                  
+        // Content
+        $mail->isHTML(true);
         $mail->Subject = 'Welcome to Pitogo Senior High School';
         $mail->Body    = "Your OTP for account verification is: $verify_code";
         $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
@@ -51,48 +53,43 @@ function sendemail_verify($email, $verify_code)
     }
 }
 
-$error = ""; 
+$errors = [];
 
 // OTP verification logic
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $user_otp = $_POST["verify_code"]; 
+    $user_otp = $_POST["user_otp"];
 
     // Check if the user_otp is not empty
     if (!empty($user_otp)) {
-        // Query the 'accounts' table to check if the provided OTP matches
-        $query = "SELECT * FROM accounts WHERE verify_code = '$user_otp'";
+        // Query the 'otp_verification' table to check if the provided OTP matches
+        $query = "SELECT * FROM otp_verification WHERE verify_code = '$user_otp'";
         $result = $conn->query($query);
 
         if ($result->num_rows == 1) {
             // OTP matched, get the user's email
             $row = $result->fetch_assoc();
-            $user_email = $row['Email'];
+            $user_email = $row['email'];
 
-            // Update the 'verify' column
-            $update_query = "UPDATE accounts SET verify = 1 WHERE Email = '$user_email'";
+            // Update the 'verify' column in the 'accounts' table
+            $update_query = "UPDATE accounts SET verify = 1 WHERE email = '$user_email'";
             if ($conn->query($update_query) === TRUE) {
                 // Send a success email to the user
-                sendemail_verify($user_email, "Your account has been verified. Please log in to continue");
+                sendemail_verify($user_email, $user_otp);
 
-                // Redirect the user back to ndex.php with a success message
-                header("Location: ndex.php?message=Account+has+been+verified.+Please+log+in+to continue");
+                // Redirect the user back to index.php with a success message
+                $_SESSION['success_message'] = "Account has been verified. Please log in to continue";
+                header("Location: ndex.php");
                 exit();
             } else {
-                $error = "Error updating record: " . $conn->error;
+                $errors[] = "Error updating record: " . $conn->error;
             }
         } else {
-            $error = "Incorrect OTP";
+            $errors[] = "Incorrect OTP";
         }
     } else {
-        $error = "Please enter an OTP"; 
+        $errors[] = "Please enter an OTP";
     }
 }
-
-// Close the database connection
-$conn->close();
-?>
-// Close the database connection
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -104,7 +101,9 @@ $conn->close();
 </head>
 <style>
     body {
-        background-image: url("FINAL.png");
+        background-image: url("PSHS.jpeg");
+        background-repeat: no-repeat;
+        background-size: cover;
         height: 100vh;
         align-items: center;
         justify-content: center;
@@ -128,6 +127,17 @@ $conn->close();
         display: flex;
     }
 
+    form img {
+        width: 80px;
+        align-items: center;
+        display: flex;
+        border: 3px solid;
+        border-color: #4fa2ed;
+        border-radius: 50px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
     input {
         background: rgba(225, 225, 225, 0.5);
         display: block;
@@ -145,20 +155,39 @@ $conn->close();
         margin: 10px auto;
         border-radius: 12px;
     }
+
+    .error {
+        background-color: #ff6666;
+        color: white;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 20px;
+    }
+
+    b {
+        display: grid;
+        align-items: center;
+    }
+
 </style>
 <body>
     <form method="post">
-        <?php if (!empty($error)) { ?>
-            <p><?php echo $error; ?></p>
+    <?php if (!empty($error)) { ?>
+    <div class="error">
+        <?php foreach ($error as $errorMessage) { ?>
+            <p><?php echo $errorMessage; ?></p>
         <?php } ?>
-
+            </div>
+        <?php } ?>
+        <img src="LOGO.png">
         <h1>OTP Verification</h1> <br>
         <label>Verification Code</label> <br>
-        <h3>Please Input Verification Code sent to </h3> <hr><hr>
+        <h3>Please Input Verification Code sent to </h3><span style="display:block; text-align:center;"> <b><?php echo $_SESSION['email']; ?></span></b> <hr><hr> <br>
 
         <input type="number" name="user_otp" placeholder="Enter OTP"> <!-- Add input field for OTP entry -->
 
         <button type="submit">Verify OTP</button>
     </form>
+
 </body>
 </html>
