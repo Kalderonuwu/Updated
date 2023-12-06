@@ -116,6 +116,18 @@ if (!isset($_SESSION['user_email'])) {
                 width: 100%;
             }
         }
+
+        .center {
+            text-align: center;
+        }
+
+        .center h2 {
+            margin-bottom: 10px; /* Add margin for better spacing */
+        }
+
+        .center p {
+            margin-bottom: 20px; /* Add margin for better spacing */
+        }
     </style>
 </head>
 <body>
@@ -126,10 +138,13 @@ if (!isset($_SESSION['user_email'])) {
 
     <div id="step1" class="reg-cont">
             <img src="LOGO.png">
+            <div class="center">
             <h2>Welcome to the Enrollment Process</h2>
-            <p>Follow the steps below to enroll in our program:</p>
+             <p>Follow the steps below to enroll in our program:</p>
 
             <h2>Registration Form (Part 1):</h2>
+            <p>Put N/A if Not Available</p>
+            </div>
 
             <label for="lrn">Learner's Reference Number (LRN):</label>
             <input type="text" id="lrn" placeholder="LRN" name="lrn" required><br>
@@ -144,9 +159,9 @@ if (!isset($_SESSION['user_email'])) {
             <input type="text" id="last_name" placeholder="Last Name" name="last_name" required><br>
 
             <label for="year_level">Year Level:</label>
-            <select id="year_level" name="level" required>
-                <option value="grade11">Grade 11</option>
-                <option value="grade12">Grade 12</option>
+            <select id="year_level" name="year_level" required>
+                <option value="Grade11">Grade 11</option>
+                <option value="Grade12">Grade 12</option>
             </select><br>
 
             <label for="strand">Select Strand:</label>
@@ -156,6 +171,7 @@ if (!isset($_SESSION['user_email'])) {
                 <option value="HUMSS">HUMMS (Humanities and Social Sciences)</option>
             </select><br>
 
+            <div id="error-message" style="color: red;"></div>
             <button id="nextButton1" type="button">Next</button>
         </div>
 
@@ -182,72 +198,103 @@ if (!isset($_SESSION['user_email'])) {
 
         <div id="step3" class="reg-cont hidden">
             <h2>Registration Form (Part 3):</h2>
-            <label for="home_number">Home Number:</label>
-            <input type="text" id="home_number" name="home_number" required><br>
+            <label for="house_street">House Number and Street:</label>
+            <input type="text" id="house_street" placeholder="House Number and Street" name="house_street" required><br>
 
-            <label for="street_barangay">Street and Barangay:</label>
-            <input type="text" id="street_barangay" name="street_barangay" required><br>
+            <label for="barangay">Barangay:</label>
+            <input type="text" id="barangay" placeholder="Baranggay" name="barangay" required><br>
 
-            <label for="city_municipality">City or Municipality:</label>
-            <input type="text" id="city_municipality" name="city_municipality" required><br>
+            <label for="city">City or Municipality:</label>
+            <input type="text" id="city" placeholder="City or Municipality" name="city" required><br>
 
             <label for="zip_code">Zip Code/Postal Code:</label>
-            <input type="text" id="zip_code" name="zip_code" required><br>
+            <input type="text" id="zip_code" placeholder="Zip code/Postal Code" name="zip_code" required><br>
 
             <button id="nextButton3" type="button">Next</button>
         </div>
-    <div id="step4" class="reg-cont hidden">
-        <form class="new">
-            <h2>Requirements:</h2>
-            <ul>
-                <li>Original Report Card (Form 138)</li>
-                <li>Permanent Record (Form 137)</li>
-                <li>Certificate of Good Moral</li>
-                <li>NSO Birth Certificate (Photocopy)</li>
-            </ul>
+        </div>
+        <div id="step4" class="reg-cont hidden">
+            <div class="new">
+                <h2>Requirements:</h2>
+                <ul>
+                    <li>Original Report Card (Form 138)</li>
+                    <li>Permanent Record (Form 137)</li>
+                    <li>Certificate of Good Moral</li>
+                    <li>NSO Birth Certificate (Photocopy)</li>
+                    <li>Parents Consent Letter (If under 18, Please check your email)</li>
+                </ul>
 
-            <label for="file_upload">Upload Documents:</label>
-            <input type="file" id="file_upload" name="file_upload" multiple><br>
+                <label for="file_upload">Upload Documents:</label>
+                <input type="file" id="file_upload" name="file_upload" multiple><br>
 
-            <button id="submitbutton" type="submit">Submit</button>
-        </form>
-    </div>
+                <button id="submitbutton" type="submit">Submit</button>
+            </div>
+        </div>
+    </form>
+    </div>   
     <script>
-        function goBack() {
-            window.location.href = "Dashboard.php";
-        }
-        const step1 = document.getElementById("step1");
-        const step2 = document.getElementById("step2");
-        const step3 = document.getElementById("step3");
-        const step4 = document.getElementById("step4");
+            document.addEventListener("DOMContentLoaded", function () {
+                const form1Inputs = ["lrn", "first_name", "middle_name", "last_name", "year_level", "strand"];
+                const form2Inputs = ["Parents/Guardian", "age", "gender", "birthdate"];
+                const form3Inputs = ["house_street", "barangay", "city", "zip_code"];
 
-        const nextButton1 = document.getElementById("nextButton1");
-        const nextButton2 = document.getElementById("nextButton2");
-        const nextButton3 = document.getElementById("nextButton3");
+                function validateForm(inputs) {
+                    const formData = new FormData(document.getElementById('registrationForm'));
 
-        nextButton1.addEventListener("click", function () {
-    step1.style.display = "none";
-    step2.style.display = "block";
-});
+                    for (const input of inputs) {
+                        const value = formData.get(input).trim();
+                        if (value === "") {
+                            alert("Please fill in all required fields before proceeding.");
+                            return false;
+                        }
+                    }
 
-nextButton2.addEventListener("click", function () {
-    step2.style.display = "none";
-    step3.style.display = "block";
-});
+                    // Additional condition to check if LRN contains exactly 12 numeric characters
+                    const lrnValue = formData.get("lrn").trim();
+                    const isLrnValid = /^\d{12}$/.test(lrnValue);
 
-nextButton3.addEventListener("click", function () {
-    step3.style.display = "none";
-    step4.style.display = "block";
-});
+                    if (!isLrnValid) {
+                        alert("LRN should be a 12-digit numeric value. Please enter a valid LRN.");
+                        return false;
+                    }
 
-        //const registrationForm = document.getElementById("registrationForm");
-        //const nextButton = document.getElementById("nextButton");
-        //const requirementsSection = document.getElementById("requirementsSection");
+                    return true;
+                }
 
-        //nextButton.addEventListener("click", function () {
-            //registrationForm.style.display = "none";
-            //requirementsSection.style.display = "block";
-        //});
-    </script>
+                const step1 = document.getElementById("step1");
+                const step2 = document.getElementById("step2");
+                const step3 = document.getElementById("step3");
+                const step4 = document.getElementById("step4");
+
+                const nextButton1 = document.getElementById("nextButton1");
+                const nextButton2 = document.getElementById("nextButton2");
+                const nextButton3 = document.getElementById("nextButton3");
+
+                nextButton1.addEventListener("click", function () {
+                    if (validateForm(form1Inputs)) {
+                        step1.style.display = "none";
+                        step2.style.display = "block";
+                    }
+                });
+
+                nextButton2.addEventListener("click", function () {
+                    if (validateForm(form2Inputs)) {
+                        step2.style.display = "none";
+                        step3.style.display = "block";
+                    }
+                });
+
+                nextButton3.addEventListener("click", function () {
+                if (validateForm(form3Inputs)) {
+                    step3.style.display = "none";
+                    step4.style.display = "block";
+                }
+            });
+         });
+
+            function goBack() {
+                window.location.href = "Dashboard.php";
+            }
+        </script>
 </body>
 </html>
